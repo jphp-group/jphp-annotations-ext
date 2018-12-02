@@ -1,0 +1,19 @@
+dependencies:
+  jphp-core:
+    version: 1.0.4
+    info:
+      sha256: 4f1e15f182b6e388977bbe65b65195a1cb0503a69d5abeb16acce49d4d7d9791
+      size: 731440
+      repo: http://api.develnext.org
+  jphp-runtime:
+    version: 1.0.7
+    info:
+      sha256: 36ed7baf5e61332446d93c67354e5fa4d159dd71a19443208fbed12ee44cf962
+      size: 1817288
+      repo: http://api.develnext.org
+  jphp-parser-ext:
+    version: 1.0.0
+    info:
+      sha256: 1eb991aed75c6abe1a6981baf74e90f82f5247bd1052308a8090e8d991fb1d6e
+      size: 80763
+      repo: http://api.develnext.org

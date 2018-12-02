@@ -1,0 +1,21 @@
+name: jphp-annotations-ext
+version: 1.0.1
+deps:
+  jphp-core: '*'
+  jphp-parser-ext: '*'
+
+plugins:
+- Hub
+- Doc
+
+sources:
+- src
+
+config:
+  ignore:
+  - /sandbox/**
+  - /.idea/**
+  - /*.iml
+  - /.git/**
+  - /package.hub.yml
+  - /.gitignore
