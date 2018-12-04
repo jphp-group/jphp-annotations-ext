@@ -8,6 +8,10 @@ use php\lib\arr;
 use php\util\Regex;
 
 class AnnotationsParser{
+    private static $DEFAULT_DOC = ['example', 'internal', 'inheritdoc', 'link', 'see', 'api', 'author', 'category',
+        'copyright', 'deprecated', 'filesource', 'global', 'ignore', 'internal',
+        'license', 'link', 'method', 'package', 'param', 'property', 'property-read', 'property-write',
+        'return', 'see', 'since', 'source', 'subpackage', 'throws', 'todo', 'uses', 'used-by', 'var', 'versions'];
     /**
      * @var UsagesParser[]
      */
@@ -59,7 +63,7 @@ class AnnotationsParser{
         while($regex->find()){
             $groups = $regex->groups();
             $name = $groups[1];
-            if(arr::has(['package'], $name)){
+            if(arr::has(self::$DEFAULT_DOC, $name)){
                 continue;
             }
             $value = $groups[3];
@@ -74,25 +78,36 @@ class AnnotationsParser{
 
             try{
                 $reflection = new \ReflectionClass($class);
-                $constructor = $reflection->getConstructor();
                 $args = [];
-                $hasArgs = [];
-                foreach($constructor->getParameters() as $i => $parameter){
-                    if($hasArgs[$parameter->getPosition()]){
-                        continue;
+                $constructor = $reflection->getConstructor();
+                if($reflection->implementsInterface(Annotation::class)){
+                    /** @var Annotation $annotation */
+                    $annotation = $reflection->newInstanceWithoutConstructor();
+                    $annotation->setProperties($positionArgs, $namedArgs);
+                    if($constructor){
+                        $constructor->invoke($annotation);
                     }
-                    if(isset($positionArgs[$parameter->getPosition()])){
-                        $args[$parameter->getPosition()] = $positionArgs[$parameter->getPosition()];
-                    }
-                    else if(isset($namedArgs[$parameter->getName()])){
-                        $args[$parameter->getPosition()] = $namedArgs[$parameter->getName()];
-                    }
-                    else{
-                        $args[$parameter->getPosition()] = $parameter->getDefaultValue();
-                    }
-                    $hasArgs[$parameter->getPosition()] = true;
+                    $result[$reflection->getName()] = $annotation;
                 }
-                $result[$reflection->getName()] = $reflection->newInstanceArgs($args);
+                else{
+                    $hasArgs = [];
+                    foreach($constructor->getParameters() as $i => $parameter){
+                        if($hasArgs[$parameter->getPosition()]){
+                            continue;
+                        }
+                        if(isset($positionArgs[$parameter->getPosition()])){
+                            $args[$parameter->getPosition()] = $positionArgs[$parameter->getPosition()];
+                        }
+                        else if(isset($namedArgs[$parameter->getName()])){
+                            $args[$parameter->getPosition()] = $namedArgs[$parameter->getName()];
+                        }
+                        else{
+                            $args[$parameter->getPosition()] = $parameter->getDefaultValue();
+                        }
+                        $hasArgs[$parameter->getPosition()] = true;
+                    }
+                    $result[$reflection->getName()] = $reflection->newInstanceArgs($args);
+                }
             }
             catch(\ReflectionException $e){
                 throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);

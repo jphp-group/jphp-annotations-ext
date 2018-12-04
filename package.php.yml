@@ -1,5 +1,5 @@
 name: jphp-annotations-ext
-version: 1.0.1
+version: 1.0.3
 deps:
   jphp-core: '*'
   jphp-parser-ext: '*'
