@@ -36,7 +36,6 @@
 - `->`[`current()`](#method-current)
 - `->`[`jump()`](#method-jump)
 - `->`[`next()`](#method-next)
-- `->`[`pre()`](#method-pre)
 
 ---
 # Methods
@@ -199,7 +198,7 @@ current(): string
 
 ### jump()
 ```php
-jump(int $amount, boolean $collect): string
+jump(int $amount): string
 ```
 
 ---
@@ -209,13 +208,4 @@ jump(int $amount, boolean $collect): string
 ### next()
 ```php
 next(): string
-```
-
----
-
-<a name="method-pre"></a>
-
-### pre()
-```php
-pre(): string
 ```

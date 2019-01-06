@@ -1,5 +1,5 @@
 name: jphp-annotations-ext
-version: 1.0.3
+version: 1.1.0
 deps:
   jphp-core: '*'
   jphp-parser-ext: '*'
@@ -10,6 +10,9 @@ plugins:
 
 sources:
 - src
+
+doc:
+  url-prefix: 'https://github.com/jphp-group/%name%/blob/master/api-docs/'
 
 config:
   ignore:

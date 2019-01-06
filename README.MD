@@ -51,15 +51,13 @@ class SampleController{
 ```php
 use test\controllers\SampleController;
 use test\annotations\Route;
-use annotations\AnnotationsParser;
+use annotations\AnnotatedReflectionClass;
 
-$class = new ReflectionClass(SampleController::class);
-$parser = new AnnotationsParser($class);
-$parser->parse();
+$class = new AnnotatedReflectionClass(SampleController::class);
 
 foreach($class->getMethods() as $method){
     /** @var Route $route */
-    $route = $parser->getMethodAnnotation($method->getName(), Route::class);
+    $route = $class->getMethodAnnotationByClass($method->getName(), Route::class);
     if($route){
         var_dump($route->getPath());
     }

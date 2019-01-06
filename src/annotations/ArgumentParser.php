@@ -54,7 +54,7 @@ class ArgumentParser{
         }
         $this->skip('(');
 
-        $c = $this->current();
+        //$c = $this->current();
         while($this->pos < $this->len){
             if($this->is('_') || $this->isLetter()){
                 $name = $this->readName();
@@ -70,7 +70,7 @@ class ArgumentParser{
             if(!$this->is(',')){
                 break;
             }
-            $c = $this->next();
+            $this->next();
         }
         $this->skip(')');
         // TODO check if this is end
@@ -238,7 +238,7 @@ class ArgumentParser{
         return $this->inRange('0', '9', $amount);
     }
     private function inRange(string $a, string $b, int $amount = 0){
-        return ($ord = char::ord($this->peek($a))) >= char::ord($a) && $ord <= char::ord($b);
+        return ($ord = char::ord($this->peek($amount))) >= char::ord($a) && $ord <= char::ord($b);
     }
 
     private function peek(int $amount): ?string{
@@ -251,15 +251,11 @@ class ArgumentParser{
     private function current(): ?string{
         return $this->peek(0);
     }
-    private function jump(int $amount, bool $collect = true): ?string{
+    private function jump(int $amount): ?string{
         $this->pos += $amount;
         return $this->current();
     }
     private function next(): ?string{
         return $this->jump(1);
-    }
-    // TODO maybe remove this method
-    private function pre(): ?string{
-        return $this->jump(-1);
     }
 }

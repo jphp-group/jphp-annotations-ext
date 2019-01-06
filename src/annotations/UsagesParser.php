@@ -52,10 +52,8 @@ class UsagesParser{
 
     private function tokenizeSource(): void {
         $this->tokenizer = new SourceTokenizer($this->source, '', 'UTF-8');
-        $useStatements = [];
-        $asStatements = [];
 
-        $namespace = '';
+        //$namespace = '';
         while($token = $this->nextToken()){
             if($token->type == 'ClassStmt' || $token->type == 'InterfaceStmt' || $token->type == 'TraitStmt'){
                 while($token = $this->nextToken()){
@@ -77,7 +75,7 @@ class UsagesParser{
                 }
             }
             if($token->type == 'NamespaceStmt'){
-                $namespace = $this->nextToken()->word; // skip namespace name
+                //$namespace = $this->nextToken()->word; // skip namespace name
                 $this->nextToken(); // skip semicolon
             }
             elseif($token->type == 'NamespaceUseStmt'){
