@@ -12,14 +12,15 @@ namespace test\annotations;
 
 
 class Route{
-    private $path;
+    public $path;
+    private $methods = ['GET'];
 
 
-    public function __construct(string $path){
-        $this->path = $path;
+    public function getMethods(): array{
+        return $this->methods;
     }
-    public function getPath(): string{
-        return $this->path;
+    public function setMethods(array $methods){
+        $this->methods = $methods;
     }
 }
 ```
@@ -45,6 +46,12 @@ class SampleController{
     public function about(): void{
         echo "http://vk.com/dn_extension";
     }
+    /**
+     * @Route(path='/login', methods=['GET', 'POST'])
+     */
+    public function login(): void{
+        echo "he-he, not implemented :)";
+    }
 }
 ```
 #### Использование аннотаций:
@@ -59,14 +66,15 @@ foreach($class->getMethods() as $method){
     /** @var Route $route */
     $route = $class->getMethodAnnotationByClass($method->getName(), Route::class);
     if($route){
-        var_dump($route->getPath());
+        echo "{$route->path} - ".str::join($route->getMethods(), ', ')."\n";
     }
 }
 ```
 #### Результат:
 ```
-string(1) "/"
-string(6) "/about"
+/ - GET
+/about - GET
+/login - GET, POST
 ```
 ## Дополнительно
 

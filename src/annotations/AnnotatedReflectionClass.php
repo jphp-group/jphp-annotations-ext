@@ -4,6 +4,9 @@
 namespace annotations;
 
 
+use annotations\bean\BeanPropertyFactory;
+use annotations\bean\DefaultBeanPropertyFactory;
+use php\lang\IllegalArgumentException;
 use php\lib\arr;
 use php\util\Regex;
 use php\util\RegexException;
@@ -31,6 +34,13 @@ class AnnotatedReflectionClass extends \ReflectionClass{
     private $fieldsDocAnnotations = [];
     private $classDocAnnotations = [];
 
+    private $allowNoneExistsProperties = false;
+    /**
+     * @var BeanPropertyFactory|null
+     */
+    private $beanPropertyFactory;
+
+
 
     /**
      * AnnotatedReflectionClass constructor.
@@ -44,8 +54,37 @@ class AnnotatedReflectionClass extends \ReflectionClass{
             self::$usagesByFile[$this->getFileName()]->parse();
         }
         $this->usages = self::$usagesByFile[$this->getFileName()];
+        $this->beanPropertyFactory = new DefaultBeanPropertyFactory();
         $this->parse();
     }
+
+    /**
+     * @return BeanPropertyFactory|null
+     */
+    public function getBeanPropertyFactory(): ?BeanPropertyFactory{
+        return $this->beanPropertyFactory;
+    }
+    /**
+     * @param BeanPropertyFactory|null $beanPropertyFactory
+     */
+    public function setBeanPropertyFactory(?BeanPropertyFactory $beanPropertyFactory): void{
+        $this->beanPropertyFactory = $beanPropertyFactory;
+    }
+
+
+    /**
+     * @return bool
+     */
+    public function isAllowNoneExistsProperties(): bool{
+        return $this->allowNoneExistsProperties;
+    }
+    /**
+     * @param bool $allowNoneExistsProperties
+     */
+    public function setAllowNoneExistsProperties(bool $allowNoneExistsProperties): void{
+        $this->allowNoneExistsProperties = $allowNoneExistsProperties;
+    }
+
     private function parse(): void{
         if($this->getDocComment()){
             $this->classAnnotations = $this->parseComment($this->getDocComment(), $this->classDocAnnotations);
@@ -67,6 +106,9 @@ class AnnotatedReflectionClass extends \ReflectionClass{
         // thx Dmitriy Zayceff :3
         // https://github.com/jphp-group/jphp/blob/master/packager/src-php/packager/Annotations.php#L137
         $regex = new Regex('\\@([a-z0-9\\-\\_\\\\]+)([ ]{0,}(.+))?', 'im', $doc);
+
+        $argumentParser = new ArgumentParser();
+
         try{
             while($regex->find()){
                 $groups = $regex->groups();
@@ -84,54 +126,45 @@ class AnnotatedReflectionClass extends \ReflectionClass{
                 if(!$class){
                     continue;
                 }
-                $parsedArgs = new ArgumentParser($value);
-                $parsedArgs->parse();
-                $namedArgs = $parsedArgs->getNamedArgs();
-                $positionArgs = $parsedArgs->getPositionArgs();
+                $args = $argumentParser->parse($value);
 
                 $reflection = new \ReflectionClass($class);
-                $args = [];
                 $constructor = $reflection->getConstructor();
 
-                $object = null;
+                $object = $reflection->newInstanceWithoutConstructor();
 
-                if($reflection->implementsInterface(Annotation::class)){
-                    /** @var Annotation $annotation */
-                    $annotation = $reflection->newInstanceWithoutConstructor();
-                    $annotation->setProperties($positionArgs, $namedArgs);
-                    if($constructor){
-                        $constructor->invoke($annotation);
-                    }
-                    $object = $annotation;
-                }
-                else{
-                    $hasArgs = [];
-                    if($constructor){
-                        foreach($constructor->getParameters() as $i => $parameter){
-                            if($hasArgs[$parameter->getPosition()]){
-                                continue;
-                            }
-                            if(isset($positionArgs[$parameter->getPosition()])){
-                                $args[$parameter->getPosition()] = $positionArgs[$parameter->getPosition()];
-                            }
-                            else if(isset($namedArgs[$parameter->getName()])){
-                                $args[$parameter->getPosition()] = $namedArgs[$parameter->getName()];
-                            }
-                            else{
-                                $args[$parameter->getPosition()] = $parameter->getDefaultValue();
-                            }
-                            $hasArgs[$parameter->getPosition()] = true;
+                foreach($args as $fieldName => $arg){
+                    if(!$reflection->hasProperty($fieldName)){
+                        if(!$this->allowNoneExistsProperties){
+                            throw new IllegalArgumentException("Property {$fieldName} does not exists in {$reflection->getName()}");
+                        }
+                        else{
+                            $object->{$fieldName} = $arg;
                         }
                     }
-                    $object = $reflection->newInstanceArgs($args);
+                    else{
+                        $property = $reflection->getProperty($fieldName);
+                        if($this->beanPropertyFactory){
+                            $this->beanPropertyFactory->setProperty($property, $object, $arg);
+                        }
+                        else{
+                            // not safe
+                            $property->setValue($object, $arg);
+                        }
+                    }
                 }
+
                 if(!$result[$reflection->getName()]){
                     $result[$reflection->getName()] = [];
                 }
+                if($constructor){
+                    $constructor->invoke($object);
+                }
+
                 $result[$reflection->getName()][] = $object;
             }
         }
-        catch(\ReflectionException|RegexException $e){
+        catch(\ReflectionException|RegexException|IllegalArgumentException $e){
             throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);
         }
 

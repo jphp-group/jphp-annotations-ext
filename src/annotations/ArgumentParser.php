@@ -4,6 +4,7 @@
 namespace annotations;
 
 
+use php\lang\IllegalArgumentException;
 use php\lib\char;
 use php\lib\str;
 
@@ -20,60 +21,39 @@ class ArgumentParser{
      * @var string
      */
     private $input;
-
-    private $positionArgs = [];
-    private $namedArgs = [];
+    private $arguments = [];
 
 
-    /**
-     * ArgumentParser constructor.
-     * @param string $input
-     */
-    public function __construct(string $input){
+    public function parse(string $input): array{
         $this->input = $input;
         $this->len = str::length($input);
-    }
 
-    /**
-     * @return array
-     */
-    public function getPositionArgs(): array{
-        return $this->positionArgs;
-    }
-    /**
-     * @return array
-     */
-    public function getNamedArgs(): array{
-        return $this->namedArgs;
-    }
-    public function parse(): void{
         $this->pos = 0;
-        $this->positionArgs = $this->namedArgs = [];
+        $this->arguments = [];
+
         if(!$this->is('(') && $this->len == 0){
-            return;
+            return $this->arguments;
         }
         $this->skip('(');
+        $this->skipWhitespaces();
+        if($this->is(')')){
+            return $this->arguments;
+        }
 
         //$c = $this->current();
         while($this->pos < $this->len){
-            if($this->is('_') || $this->isLetter()){
-                $name = $this->readName();
-                $this->skip('=');
-                $this->namedArgs[$name] = $this->readValue();
-            }
-            else{
-                if(count($this->namedArgs) > 0){
-                    throw new \RuntimeException("Positioned arguments must be before named");
-                }
-                $this->positionArgs[] = $this->readValue();
-            }
+            $this->skipWhitespaces();
+            $name = $this->readName();
+            $this->skip('=');
+            $this->arguments[$name] = $this->readValue();
             if(!$this->is(',')){
                 break;
             }
             $this->next();
         }
         $this->skip(')');
-        // TODO check if this is end
+
+        return $this->arguments;
     }
     private function readValue(){
         if($this->is('[')){
@@ -82,7 +62,7 @@ class ArgumentParser{
         else if($this->is('_') || $this->isLetter()){
             return $this->readName(true);
         }
-        else if($this->isDigit() || ($this->is('.') && $this->isDigit(1))){
+        else if($this->is('-') || $this->isDigit() || ($this->is('.') && $this->isDigit(1))){
             return $this->readNumber();
         }
         else if($this->is('\'') || $this->is('"')){
@@ -95,7 +75,8 @@ class ArgumentParser{
     private function readNumber(){
         $number = '';
 
-        $c = $this->current();
+        $minus = $this->is('-');
+        $c = $minus ? $this->next() : $this->current();
         while($this->pos < $this->len){
             if(!$this->is('.') && !$this->isDigit()){
                 break;
@@ -113,7 +94,8 @@ class ArgumentParser{
             $number = $number.'0';
         }
 
-        return str::contains($number, '.') ? floatval($number) : intval($number);
+        $resultNumber = str::contains($number, '.') ? floatval($number) : intval($number);
+        return $minus ? -$resultNumber : $resultNumber;
     }
     private function readString(): string{
         $start = $this->current();
@@ -188,7 +170,11 @@ class ArgumentParser{
     private function readName(bool $detectKeywords = false){
         $name = '';
 
+
         $c = $this->current();
+        if(!$this->is('_') && !$this->isLetter()){
+            throw new \Exception("Illegal argument name start");
+        }
         while($this->pos < $this->len){
             if(!$this->is('_') && !$this->isDigit() && !$this->isLetter()){
                 break;
@@ -210,10 +196,7 @@ class ArgumentParser{
         return $name;
     }
     private function skipWhitespaces(): void{
-        while($this->pos < $this->len){
-            if(!$this->is(' ', 0, false) && !$this->is("\n", 0, false)){
-                break;
-            }
+        while($this->is(' ', 0 , false) || $this->is("\n", 0, false)){
             $this->next();
         }
     }
